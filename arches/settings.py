@@ -134,7 +134,7 @@ JSON_LD_CONTEXT = {
 ARCHES_NAMESPACE_FOR_DATA_EXPORT = 'http://localhost/'
 
 PREFERRED_COORDINATE_SYSTEMS = (
-    {"name": "Geographic", "srid": "4326", "proj4": "+proj=longlat +datum=WGS84 +no_defs", "default": True},
+    {"name": "Geographic", "srid": "4326", "proj4": "+proj=longlat +datum=WGS84 +no_defs", "default": True}, #Required
 )
 
 ADMINS = (
@@ -452,6 +452,36 @@ HEX_BIN_PRECISION = 4
 ### END RUN TIME CONFIGURABLE SETTINGS ###
 ##########################################
 
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 9,
+        }
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+    {
+        'NAME': 'arches.app.utils.password_validation.SpecialCharacterValidator',
+        'OPTIONS': {
+            'special_characters': ('!','@','#','$','%','^','&','*',')','('),
+        }
+    },
+    {
+        'NAME': 'arches.app.utils.password_validation.HasNumericCharacterValidator',
+    },
+    {
+        'NAME': 'arches.app.utils.password_validation.HasUpperAndLowerCaseValidator',
+    },
+]
 
 try:
     from settings_local import *

@@ -37,6 +37,7 @@ from arches.app.utils.data_management.resources.formats.format import Reader as 
 from arches.app.utils.data_management.resources.formats.format import MissingGraphException
 from arches.app.utils.data_management.resources.formats.csvfile import MissingConfigException
 from arches.app.utils.data_management.resource_graphs.importer import import_graph as ResourceGraphImporter
+from arches.app.utils.data_management.resource_graphs import exporter as ResourceGraphExporter
 from arches.app.utils.data_management.resources.importer import BusinessDataImporter
 from arches.app.utils.betterJSONSerializer import JSONSerializer, JSONDeserializer
 from arches.app.utils.skos import SKOSReader
@@ -52,7 +53,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('-o', '--operation', action='store', dest='operation', default='setup',
-            choices=['setup', 'install', 'setup_db', 'setup_indexes', 'start_elasticsearch', 'setup_elasticsearch', 'build_permissions', 'remove_resources', 'load_concept_scheme', 'export_business_data', 'add_tileserver_layer', 'delete_tileserver_layer',
+            choices=['setup', 'install', 'setup_db', 'setup_indexes', 'start_elasticsearch', 'setup_elasticsearch', 'build_permissions', 'remove_resources', 'load_concept_scheme', 'export_business_data', 'export_graphs', 'add_tileserver_layer', 'delete_tileserver_layer',
             'create_mapping_file', 'import_reference_data', 'import_graphs', 'import_business_data','import_business_data_relations', 'import_mapping_file', 'save_system_settings', 'add_mapbox_layer', 'seed_resource_tile_cache', 'update_project_templates','load_package','create_package'],
             help='Operation Type; ' +
             '\'setup\'=Sets up Elasticsearch and core database schema and code' +
@@ -116,6 +117,8 @@ class Command(BaseCommand):
         parser.add_argument('-single_file', '--single_file', action='store_true', dest='single_file',
             help='Export grouped business data attrbiutes one or multiple csv files. By setting this flag the system will export all grouped business data to one csv file.')
 
+        parser.add_argument('-y', '--yes', action='store_true', dest='yes',
+            help='used to force a yes answer to any user input "continue? y/n" prompt')
 
     def handle(self, *args, **options):
         print 'operation: '+ options['operation']
@@ -149,7 +152,7 @@ class Command(BaseCommand):
             self.build_permissions()
 
         if options['operation'] == 'remove_resources':
-            self.remove_resources(options['load_id'])
+            self.remove_resources(load_id=options['load_id'],force=options['yes'])
 
         if options['operation'] == 'load_concept_scheme':
             self.load_concept_scheme(package_name, options['source'])
@@ -162,6 +165,9 @@ class Command(BaseCommand):
 
         if options['operation'] == 'import_graphs':
             self.import_graphs(options['source'])
+
+        if options['operation'] == 'export_graphs':
+            self.export_graphs(options['dest_dir'], options['graphs'])
 
         if options['operation'] == 'import_business_data':
             self.import_business_data(options['source'], options['config_file'], options['overwrite'], options['bulk_load'])
@@ -250,7 +256,7 @@ class Command(BaseCommand):
         def load_system_settings():
             update_system_settings = True
             if os.path.exists(settings.SYSTEM_SETTINGS_LOCAL_PATH):
-                response = raw_input('Overwrite current system settings with package settings? (T/F): ')
+                response = raw_input('Overwrite current system settings with package settings? (Y/N): ')
                 if response.lower() in ('t', 'true', 'y', 'yes'):
                     update_system_settings = True
                     print 'Using package system settings'
@@ -507,7 +513,8 @@ class Command(BaseCommand):
             'WSGI_APPLICATION',
             'LOGGING',
             'LOGIN_URL',
-            'SYSTEM_SETTINGS_LOCAL_PATH'
+            'SYSTEM_SETTINGS_LOCAL_PATH',
+            'AUTH_PASSWORD_VALIDATORS'
             ]
 
         with open('arches/install/arches-templates/project_name/settings_local.py-tpl', 'w') as f:
@@ -608,6 +615,11 @@ class Command(BaseCommand):
         self.import_graphs(os.path.join(settings.ROOT_DIR, 'db', 'system_settings', 'Arches_System_Settings_Model.json'), overwrite_graphs=True)
         self.import_business_data(os.path.join(settings.ROOT_DIR, 'db', 'system_settings', 'Arches_System_Settings.json'), overwrite=True)
 
+        local_settings_available = os.path.isfile(os.path.join(settings.SYSTEM_SETTINGS_LOCAL_PATH))
+
+        if local_settings_available == True:
+            self.import_business_data(settings.SYSTEM_SETTINGS_LOCAL_PATH, overwrite=True)
+
 
     def setup_indexes(self):
         management.call_command('es', operation='setup_indexes')
@@ -658,13 +670,17 @@ class Command(BaseCommand):
                 Permission.objects.create(codename='read_%s' % entitytype, name='%s - read' % entitytype , content_type=content_type[0])
                 Permission.objects.create(codename='delete_%s' % entitytype, name='%s - delete' % entitytype , content_type=content_type[0])
 
-    def remove_resources(self, load_id):
+    def remove_resources(self, load_id='', force=False):
         """
-        Runs the resource_remover command found in package_utils
-
+        Runs the resource_remover command found in data_management.resources
         """
         # resource_remover.delete_resources(load_id)
+        if not force:
+            if not utils.get_yn_input("all resources will be removed. continue?"):
+                return
+
         resource_remover.clear_resources()
+        return
 
     def export_business_data(self, data_dest=None, file_format=None, config_file=None, graph=None, single_file=False):
         try:
@@ -791,6 +807,22 @@ class Command(BaseCommand):
                         archesfile = JSONDeserializer().deserialize(f)
                         ResourceGraphImporter(archesfile['graph'], overwrite_graphs)
 
+    def export_graphs(self, data_dest='', graphs=''):
+        """
+        Exports graphs to arches.json.
+
+        """
+        if data_dest != '':
+            graphs = [graph.strip() for graph in graphs.split(',')]
+            for graph in ResourceGraphExporter.get_graphs_for_export(graphids=graphs)['graph']:
+                graph_name = graph['name'].replace('/', '-')
+                with open(os.path.join(data_dest, graph_name + '.json'), 'wb') as f:
+                    f.write(JSONSerializer().serialize({'graph': [graph]}, indent=4))
+        else:
+            print '*'*80
+            print 'No destination directory specified. Please rerun this command with the \'-d\' parameter populated.'
+            print '*'*80
+            sys.exit()
 
     def save_system_settings(self, data_dest=settings.SYSTEM_SETTINGS_LOCAL_PATH, file_format='json', config_file=None, graph=settings.SYSTEM_SETTINGS_RESOURCE_MODEL_ID, single_file=False):
         resource_exporter = ResourceExporter(file_format, configs=config_file, single_file=single_file)
