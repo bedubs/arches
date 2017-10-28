@@ -24,7 +24,6 @@ import inspect
 ###          STATIC SETTINGS          ###
 #########################################
 
-
 MODE = 'PROD' #options are either "PROD" or "DEV" (installing with Dev mode set, gets you extra dependencies)
 DEBUG = True
 INTERNAL_IPS = ('127.0.0.1',)
@@ -141,6 +140,13 @@ ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
 MANAGERS = ADMINS
+
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  #<-- Only need to uncomment this for testing without an actual email server
+# EMAIL_USE_TLS = True
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_HOST_USER = 'xxxx@xxx.com'
+# EMAIL_HOST_PASSWORD = 'xxxxxxx'
+# EMAIL_PORT = 587
 
 POSTGIS_VERSION = (2, 0, 0)
 
@@ -273,6 +279,7 @@ INSTALLED_APPS = (
     'arches.app.models',
     'arches.management',
     'guardian',
+    'captcha'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -318,6 +325,40 @@ BULK_IMPORT_BATCH_SIZE = 2000
 
 SYSTEM_SETTINGS_LOCAL_PATH = os.path.join(ROOT_DIR, 'db', 'system_settings', 'Arches_System_Settings_Local.json')
 
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'arches.app.utils.password_validation.NumericPasswordValidator', #Passwords cannot be entirely numeric
+    },
+    {
+        'NAME': 'arches.app.utils.password_validation.SpecialCharacterValidator', #Passwords must contain special characters
+        'OPTIONS': {
+            'special_characters': ('!','@','#',')','(','*','&','^','%','$'),
+        }
+    },
+    {
+        'NAME': 'arches.app.utils.password_validation.HasNumericCharacterValidator', #Passwords must contain 1 or more numbers
+    },
+    {
+        'NAME': 'arches.app.utils.password_validation.HasUpperAndLowerCaseValidator', #Passwords must contain upper and lower characters
+    },
+    {
+        'NAME': 'arches.app.utils.password_validation.MinLengthValidator', #Passwords must meet minimum length requirement
+        'OPTIONS': {
+            'min_length': 9,
+        }
+    },
+]
+
+USE_LIVERELOAD = False
+LIVERELOAD_PORT = 35729 # usually only used in development, 35729 is default for livereload browser extensions
+
+ENABLE_CAPTCHA = True
+# RECAPTCHA_PUBLIC_KEY = ''
+# RECAPTCHA_PRIVATE_KEY = ''
+# RECAPTCHA_USE_SSL = False
+NOCAPTCHA = True
+# RECAPTCHA_PROXY = 'http://127.0.0.1:8000'
+
 #######################################
 ###       END STATIC SETTINGS       ###
 #######################################
@@ -328,7 +369,7 @@ SYSTEM_SETTINGS_LOCAL_PATH = os.path.join(ROOT_DIR, 'db', 'system_settings', 'Ar
 ###   RUN TIME CONFIGURABLE SETTINGS   ###
 ##########################################
 
-
+PHONE_REGEX = r'^\+\d{8,15}$'
 SEARCH_ITEMS_PER_PAGE = 5
 SEARCH_EXPORT_ITEMS_PER_PAGE = 100000
 RELATED_RESOURCES_PER_PAGE = 15
@@ -337,8 +378,6 @@ SEARCH_DROPDOWN_LENGTH = 100
 WORDS_PER_SEARCH_TERM = 10 # set to None for unlimited number of words allowed for search terms
 
 ETL_USERNAME = 'ETL' # override this setting in your packages settings.py file
-
-LIVERELOAD_PORT = 35729 # usually only used in development, 35729 is default for livereload browser extensions
 
 GOOGLE_ANALYTICS_TRACKING_ID = None
 
@@ -411,7 +450,7 @@ DEFAULT_MAP_ZOOM = 0
 MAP_MIN_ZOOM = 0
 MAP_MAX_ZOOM = 20
 
-# If True users can make edits to graphs that are locked
+# If True, users can make edits to graphs that are locked
 # (generally because they have resource intances saved against them)
 # Changing this setting to True and making graph modifications may result in
 # disagreement between your Resource Models and Resource Instances potentially
@@ -452,36 +491,6 @@ HEX_BIN_PRECISION = 4
 ### END RUN TIME CONFIGURABLE SETTINGS ###
 ##########################################
 
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {
-            'min_length': 9,
-        }
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-    {
-        'NAME': 'arches.app.utils.password_validation.SpecialCharacterValidator',
-        'OPTIONS': {
-            'special_characters': ('!','@','#','$','%','^','&','*',')','('),
-        }
-    },
-    {
-        'NAME': 'arches.app.utils.password_validation.HasNumericCharacterValidator',
-    },
-    {
-        'NAME': 'arches.app.utils.password_validation.HasUpperAndLowerCaseValidator',
-    },
-]
 
 try:
     from settings_local import *

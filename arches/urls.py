@@ -18,15 +18,15 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from django.conf.urls import include, url
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from django.conf.urls.i18n import patterns
 from arches.app.views import concept, main, map, search, graph, tileserver
 from arches.app.views.admin import ReIndexResources
 from arches.app.views.graph import GraphManagerView, GraphSettingsView, GraphDataView, DatatypeTemplateView, CardManagerView, CardView, FormManagerView, FormView, ReportManagerView, ReportEditorView, FunctionManagerView, PermissionManagerView, PermissionDataView
 from arches.app.views.resource import ResourceEditorView, ResourceListView, ResourceData, ResourceReportView, RelatedResourcesView, ResourceDescriptors, ResourceEditLogView
 from arches.app.views.concept import RDMView
-from arches.app.views.users import UserManagerView
+from arches.app.views.user import UserManagerView, GroupUsers
 from arches.app.views.tile import TileData
 from arches.app.views.map import MapLayerManagerView
+from arches.app.views.project import ProjectManagerView
 from arches.app.models.system_settings import settings
 
 # Uncomment the next two lines to enable the admin:
@@ -39,6 +39,8 @@ urlpatterns = [
     url(r'^$', main.index, name='root'),
     url(r'^index.htm', main.index, name='home'),
     url(r'^auth/password$', main.change_password, name='change_password'),
+    url(r'^auth/signup$', main.signup, name='signup'),
+    url(r'^auth/confirm_signup$', main.confirm_signup, name='confirm_signup'),
     url(r'^auth/', main.auth, name='auth'),
     url(r'^rdm/(?P<conceptid>%s|())$' % uuid_regex , RDMView.as_view(), name='rdm'),
     url(r'^admin/reindex/resources$', ReIndexResources.as_view(), name="reindex"),
@@ -114,7 +116,9 @@ urlpatterns = [
     url(r'^tileserver/*', tileserver.handle_request, name="tileserver"),
     url(r'^map_layer_manager/(?P<maplayerid>%s)$' % uuid_regex, MapLayerManagerView.as_view(), name='map_layer_update'),
     url(r'^map_layer_manager/*', MapLayerManagerView.as_view(), name="map_layer_manager"),
-    url(r'^user/*', UserManagerView.as_view(), name="user_profile_manager"),
+    url(r'^user$', UserManagerView.as_view(), name="user_profile_manager"),
+    url(r'^user/groups/*', GroupUsers.as_view(), name="group_users"),
+    url(r'^project_manager/*', ProjectManagerView.as_view(), name="project_manager"),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),

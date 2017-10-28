@@ -104,7 +104,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                                 {% if user.username == 'anonymous' %}
                                 <h5 class="hidden-xs">{% trans "Login" %}</h5>
                                 {% else %}
-                                <h5 class="hidden-xs">{% trans "Welcome" %}, {{ user.username }}</h5>
+                                <h5 class="hidden-xs">{% trans "Welcome" %}, {{ user.first_name|default:user.username }}</h5>
                                 {% endif %}
                             </div>
                         </a>
@@ -270,6 +270,15 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                                                 </li>
                                             </ul>
                                         </li>
+
+                                        <li{% if "views/project-manager" in main_script %} class="active-sub"{% endif %}>
+                                            <a href="{% url 'project_manager' %}" data-bind="click: navigate.bind(this, '{% url 'project_manager' %}') ">
+                                                <i class="fa fa-globe"></i>
+                                                <span class="menu-title">
+                                                    <strong>{% trans "Mobile Project Manager" %}</strong>
+                                                </span>
+                                            </a>
+                                        </li>
                                         {% endif %}
 
 
@@ -286,6 +295,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                                         {% endif %}
 
                                         <!-- Profile Manager -->
+                                        {% if user.is_authenticated and request.user.username != 'anonymous' %}
                                         <li{% if "user-profile-manager" in main_script %} class="active-sub"{% endif %}>
                                             <a href="{% url 'user_profile_manager' %}" data-bind="click: navigate.bind(this, '{% url 'user_profile_manager' %}') ">
                                                 <i class="fa fa-user"></i>
@@ -294,6 +304,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
                                                 </span>
                                             </a>
                                         </li>
+                                        {% endif %}
 
                                         {% if request.user|has_group:"RDM Administrator" %}
                                         <li class="list-divider-dark"></li>

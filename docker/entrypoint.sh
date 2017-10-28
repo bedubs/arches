@@ -28,7 +28,7 @@ DJANGO_PORT=${DJANGO_PORT:-8000}
 
 cd_web_root() {
 	cd ${WEB_ROOT}
-	echo "Current work directory: ${ARCHES_ROOT}"
+	echo "Current work directory: ${WEB_ROOT}"
 }
 
 cd_arches_root() {
@@ -280,17 +280,31 @@ collect_static(){
 run_django_server() {
 	echo ""
 	echo ""
-	echo "----- *** RUNNING DJANGO SERVER *** -----"
+	echo "----- *** RUNNING DJANGO DEVELOPMENT SERVER *** -----"
 	echo ""
 	cd_app_folder
-	if [[ ${DJANGO_NORELOAD} == "True" ]]; then
-	    echo "Running Django with options --noreload --nothreading."
-		exec python manage.py runserver --noreload --nothreading 0.0.0.0:${DJANGO_PORT}
-	else
+	if [[ ${DJANGO_RELOAD} == "True" ]]; then
+	    echo "Running Django with livereload."
 		exec python manage.py runserver 0.0.0.0:${DJANGO_PORT}
+	else
+        echo "Running Django with options --noreload --nothreading."
+		exec python manage.py runserver --noreload --nothreading 0.0.0.0:${DJANGO_PORT}
 	fi
 }
 
+
+run_gunicorn_server() {
+	echo ""
+	echo ""
+	echo "----- *** RUNNING GUNICORN PRODUCTION SERVER *** -----"
+	echo ""
+	cd_app_folder
+    if [[ ! -z ${ARCHES_PROJECT} ]]; then
+        gunicorn arches.wsgi:application -w 2 -b :${DJANGO_PORT} --pythonpath ${ARCHES_PROJECT}
+	else
+        gunicorn arches.wsgi:application -w 2 -b :${DJANGO_PORT}
+    fi
+}
 
 
 
@@ -298,22 +312,25 @@ run_django_server() {
 run_arches() {
 
 	init_arches
-
-	if [[ "${DJANGO_MODE}" == "DEV" ]]; then
-		set_dev_mode
-	fi
-
 	install_bower_components
 
 	if [[ "${DJANGO_MODE}" == "DEV" ]]; then
+		set_dev_mode
 		run_migrations
-	elif [[ "${DJANGO_MODE}" == "PROD" ]]; then
-		collect_static
 	fi
 
 	run_custom_scripts
 
-	run_django_server
+	if [[ "${DJANGO_MODE}" == "DEV" ]]; then
+		run_django_server
+	elif [[ "${DJANGO_MODE}" == "PROD" ]]; then
+		collect_static
+		run_gunicorn_server
+	fi
+
+	
+
+	
 }
 
 
