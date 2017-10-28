@@ -6,6 +6,9 @@ import os
 from django.db import migrations, models
 from django.core import management
 from arches.app.models.system_settings import settings
+from arches.app.models.concept import Concept
+from arches.app.search.search_engine_factory import SearchEngineFactory
+from arches.app.search.elasticsearch_dsl_builder import Term, Query
 from rdflib import Graph, RDF, RDFS
 
 def forwards_func(apps, schema_editor):
@@ -47,6 +50,13 @@ def forwards_func(apps, schema_editor):
                 edge.ontologyproperty = ontology_property
                 edge.save()
 
+    # index base Arches concept
+    arches_concept = Concept().get(id='00000000-0000-0000-0000-000000000001', include=['label'])
+    arches_concept.index()
+
+    DValueType = apps.get_model("models", "DValueType")
+    DValueType.objects.create(valuetype='identifier', category='identifiers', namespace='dcterms', datatype='text')
+
 def reverse_func(apps, schema_editor):
     extensions = [os.path.join(settings.ONTOLOGY_PATH, x) for x in settings.ONTOLOGY_EXT]
     management.call_command('load_ontology', source=os.path.join(settings.ONTOLOGY_PATH, settings.ONTOLOGY_BASE),
@@ -62,6 +72,18 @@ def reverse_func(apps, schema_editor):
     for edge in Edge.objects.all():
         edge.ontologyproperty = str(edge.ontologyproperty).split('/')[-1]
         edge.save()
+
+    # remove index for base Arches concept
+    se = SearchEngineFactory().create()
+    query = Query(se, start=0, limit=10000)
+    query.add_query(Term(field='conceptid', term='00000000-0000-0000-0000-000000000001'))
+    query.delete(index='strings', doc_type='concept')
+
+    try:
+        DValueType = apps.get_model("models", "DValueType")
+        DValueType.objects.get(valuetype='identifier').delete()
+    except:
+        pass
 
 class Migration(migrations.Migration):
 
@@ -87,19 +109,24 @@ class Migration(migrations.Migration):
                 }'
             );
 
-            INSERT INTO d_data_types VALUES (
-                    'resource-instance',
-                    'fa fa-external-link-o',
-                    'datatypes.py',
-                    'ResourceInstanceDataType',
-                    '{
-                        "graphid": null
-                    }',
-                    'views/components/datatypes/resource-instance',
-                    'resource-instance-datatype-config',
-                    FALSE,
-                    '31f3728c-7613-11e7-a139-784f435179ea',
-                    TRUE
+            INSERT INTO d_data_types(
+                datatype, iconclass, modulename, 
+                classname, defaultconfig, configcomponent, 
+                configname, isgeometric, defaultwidget, 
+                issearchable
+            ) VALUES (
+                'resource-instance',
+                'fa fa-external-link-o',
+                'datatypes.py',
+                'ResourceInstanceDataType',
+                '{
+                    "graphid": null
+                }',
+                'views/components/datatypes/resource-instance',
+                'resource-instance-datatype-config',
+                FALSE,
+                '31f3728c-7613-11e7-a139-784f435179ea',
+                TRUE
             );
 
             INSERT INTO widgets(
@@ -118,19 +145,24 @@ class Migration(migrations.Migration):
                 }'
             );
 
-            INSERT INTO d_data_types VALUES (
-                    'resource-instance-list',
-                    'fa fa-external-link-square',
-                    'datatypes.py',
-                    'ResourceInstanceDataType',
-                    '{
-                        "graphid": null
-                    }',
-                    'views/components/datatypes/resource-instance',
-                    'resource-instance-datatype-config',
-                    FALSE,
-                    'ff3c400a-76ec-11e7-a793-784f435179ea',
-                    TRUE
+            INSERT INTO d_data_types(
+                datatype, iconclass, modulename, 
+                classname, defaultconfig, configcomponent, 
+                configname, isgeometric, defaultwidget, 
+                issearchable
+            ) VALUES (
+                'resource-instance-list',
+                'fa fa-external-link-square',
+                'datatypes.py',
+                'ResourceInstanceDataType',
+                '{
+                    "graphid": null
+                }',
+                'views/components/datatypes/resource-instance',
+                'resource-instance-datatype-config',
+                FALSE,
+                'ff3c400a-76ec-11e7-a793-784f435179ea',
+                TRUE
             );
             """,
             """

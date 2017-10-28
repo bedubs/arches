@@ -18,10 +18,12 @@ Arches v4 Documentation
     managing-resources
     using-the-arches-designer
     creating-resources
+    project-setup
     import-export
     ontologies-in-arches
     rdm
     create-package
+    additional-configuration
 
 .. toctree::
     :caption: Tutorials

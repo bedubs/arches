@@ -5,12 +5,11 @@ define([
     'knockout-mapping',
     'arches',
     'views/resource/related-resources-node-list',
-    'view-data',
     'bindings/related-resources-graph',
     'plugins/knockout-select2',
     'bindings/datepicker',
     'bindings/datatable'
-], function($, Backbone, ko, koMapping, arches, RelatedResourcesNodeList, viewData) {
+], function($, Backbone, ko, koMapping, arches, RelatedResourcesNodeList) {
     return Backbone.View.extend({
         initialize: function(options) {
             var self = this;
@@ -19,8 +18,6 @@ define([
             this.editingInstanceId = options.editing_instance_id;
             this.graph = options.graph;
             this.graphNameLookup = _.indexBy(arches.resources, 'graphid');
-            this.reportURL = arches.urls.resource_report;
-            this.editURL = arches.urls.resource_editor;
             this.currentResource = ko.observable();
             this.currentResourceSubscriptions = [];
             this.resourceEditorContext = options.resourceEditorContext;
@@ -34,12 +31,28 @@ define([
                 items: self.graphNodeList
             });
             this.useSemanticRelationships = arches.useSemanticRelationships;
-            this.graphs = _.indexBy(viewData.createableResources, 'graphid');
             this.selectedOntologyClass = ko.observable();
             this.resourceRelationships = ko.observableArray();
+            this.paginator = koMapping.fromJS({});
 
             this.selectedOntologyClass.subscribe(function() {
                 self.selectedOntologyClass() ? self.relationshipTypes(self.validproperties[self.selectedOntologyClass()]) : self.relationshipTypes(options.relationship_types.values);
+            })
+
+            this.showGraph.subscribe(function(val){
+                this.graphNodeList([])
+            }, this)
+
+            this.panelPosition = ko.computed(function() {
+                var res = {x:0, y:0, first:[0,0], second:[0,0]}
+                var nodes = self.graphNodeSelection()
+                if (nodes.length === 2) {
+                    res.x = nodes[0].absX < nodes[1].absX ? nodes[0].absX : nodes[1].absX
+                    res.y = nodes[0].absY < nodes[1].absY ? nodes[0].absY : nodes[1].absY
+                    res.first = nodes[0];
+                    res.second = nodes[1];
+                }
+                return res;
             })
 
             if (!this.useSemanticRelationships) {
@@ -104,16 +117,24 @@ define([
                 return res;
             });
 
+            this.newPage = function(page, e){
+                if(page){
+                    this.currentResource().get(page)
+                }
+            },
+
             this.createResource = function(resourceinstanceid) {
                 return {
                     resourceinstanceid: resourceinstanceid,
                     relatedresources: ko.observableArray(),
                     relationships: ko.observableArray(),
                     resourceRelationships: ko.observableArray(),
+                    paging: ko.observable(),
                     parse: function(data, viewModel) {
+                        var rr = data.related_resources;
                         var relationshipsWithResource = [];
-                        var resources = data.related_resources;
-                        data.resource_relationships.forEach(function(relationship) {
+                        var resources = rr.related_resources;
+                        rr.resource_relationships.forEach(function(relationship) {
                             var res = _.filter(resources, function(resource) {
                                 if (_.contains([relationship.resourceinstanceidto, relationship.resourceinstanceidfrom], resource.resourceinstanceid)) {
                                     return resource;
@@ -132,22 +153,27 @@ define([
                                 }
                             }
                             relationship['resource'] = res.length > 0 ? res[0] : "";
-                            relationship.iconclass = viewModel.graphs[relationship.resource.graph_id].iconclass
+                            relationship.iconclass = viewModel.graphNameLookup[relationship.resource.graph_id].icon
                             relationshipsWithResource.push(relationship)
                         }, this)
                         var sorted = _(relationshipsWithResource).chain()
                             .sortBy(function(relate) {
                                 return relate.created;
                             }).value().reverse();
+                        this.paging(data.paginator);
                         this.resourceRelationships(sorted);
-                        this.displayname = data.resource_instance.displayname;
-                        this.graphid = data.resource_instance.graph_id;
+                        this.displayname = rr.resource_instance.displayname;
+                        this.graphid = rr.resource_instance.graph_id;
                     },
-                    get: function() {
+                    get: function(newPage) {
+                        var page = newPage || 1
                         $.ajax({
                                 url: arches.urls.related_resources + resourceinstanceid,
                                 context: this,
-                                dataType: 'json'
+                                dataType: 'json',
+                                data: {
+                                    page: page
+                                }
                             })
                             .done(function(data) {
                                 this.parse(data, self)
@@ -247,12 +273,18 @@ define([
                 this.currentResource().resourceRelationships.subscribe(function(val) {
                     this.resourceRelationships(val);
                 }, this)
+                this.currentResource().paging.subscribe(function(val) {
+                    koMapping.fromJS(val, this.paginator);
+                }, this)
             } else {
                 this.searchResults.showRelationships.subscribe(function(val) {
                     self.currentResource(self.createResource(val.resourceinstanceid))
                     self.getRelatedResources();
                     self.currentResource().resourceRelationships.subscribe(function(val) {
                         self.resourceRelationships(val);
+                    }, self)
+                    self.currentResource().paging.subscribe(function(val) {
+                        koMapping.fromJS(val, self.paginator);
                     }, self)
                 })
             }

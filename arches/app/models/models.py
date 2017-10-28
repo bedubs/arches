@@ -18,10 +18,16 @@ import datetime
 from django.forms.models import model_to_dict
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import JSONField
-from django.db.models import Q, Max
+from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage
+from django.core.validators import RegexValidator
+from django.db.models import Q, Max
 from django.dispatch import receiver
 from django.utils.translation import ugettext as _
+from django.contrib.auth.models import User
+from django.contrib.auth.models import Group
+
+
 
 # can't use "arches.app.models.system_settings.SystemSettings" because of circular refernce issue
 # so make sure the only settings we use in this file are ones that are static (fixed at run time)
@@ -300,7 +306,6 @@ class FunctionXGraph(models.Model):
         db_table = 'functions_x_graphs'
         unique_together = ('function', 'graph',)
 
-
 class GraphModel(models.Model):
     graphid = models.UUIDField(primary_key=True, default=uuid.uuid1)  # This field type is a guess.
     name = models.TextField(blank=True, null=True)
@@ -395,6 +400,7 @@ class Node(models.Model):
     graph = models.ForeignKey(GraphModel, db_column='graphid', blank=True, null=True)
     config = JSONField(blank=True, null=True, db_column='config')
     issearchable = models.BooleanField(default=True)
+    isrequired = models.BooleanField(default=False)
 
     def get_child_nodes_and_edges(self):
         """
@@ -795,6 +801,7 @@ class TileserverLayer(models.Model):
         managed = True
         db_table = 'tileserver_layers'
 
+
 class GraphXMapping(models.Model):
     id = models.UUIDField(primary_key=True, serialize=False, default=uuid.uuid1)
     graph = models.ForeignKey('GraphModel', db_column='graphid')
@@ -815,3 +822,50 @@ class IIIFManifest(models.Model):
     class Meta:
         managed = True
         db_table = 'iiif_manifests'
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    phone = models.CharField(max_length=16, blank=True)
+    class Meta:
+        managed = True
+        db_table = 'user_profile'
+
+
+class MobileProject(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid1)
+    name = models.TextField()
+    active = models.BooleanField(default=False)
+    createdby = models.ForeignKey(User, related_name='createdby')
+    lasteditedby = models.ForeignKey(User, related_name='lasteditedby')
+    users = models.ManyToManyField(to=User, through='MobileProjectXUser')
+    groups = models.ManyToManyField(to=Group, through='MobileProjectXGroup')
+
+    def __unicode__(self):
+        return self.name
+
+    class Meta:
+        managed = True
+        db_table = 'mobile_projects'
+
+
+class MobileProjectXUser(models.Model):
+    mobile_project_x_user_id = models.UUIDField(primary_key=True, serialize=False, default=uuid.uuid1)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    mobile_project = models.ForeignKey(MobileProject, on_delete=models.CASCADE)
+
+    class Meta:
+        managed = True
+        db_table = 'mobile_projects_x_users'
+        unique_together = ('mobile_project', 'user',)
+
+
+class MobileProjectXGroup(models.Model):
+    mobile_project_x_group_id = models.UUIDField(primary_key=True, serialize=False, default=uuid.uuid1)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    mobile_project = models.ForeignKey(MobileProject, on_delete=models.CASCADE)
+
+    class Meta:
+        managed = True
+        db_table = 'mobile_projects_x_groups'
+        unique_together = ('mobile_project', 'group',)

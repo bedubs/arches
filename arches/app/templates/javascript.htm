@@ -132,6 +132,7 @@
                 root: "{% url 'root' %}",
                 home: "{% url 'home' %}",
                 media: "{{ STATIC_URL }}",
+                rdm: "{% url 'rdm' ''%}",
                 uploadedfiles: "{{ MEDIA_URL }}",
                 concept_tree: "{% url 'concept_tree' '' %}",
                 concept: "{% url 'concept' 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' %}",
@@ -139,9 +140,11 @@
                 concept_value: "{% url 'concept_value' %}",
                 concept_manage_parents: "{% url 'concept_manage_parents' 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' %}",
                 concept_make_collection: "{% url 'make_collection' 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' %}",
+                change_password: "{% url 'change_password' %}",
                 export_concept: "{% url 'export_concept' 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' %}",
                 export_concept_collections: "{% url 'export_concept_collections' %}",
                 dropdown: "{% url 'dropdown' %}",
+                paged_dropdown: "{% url 'paged_dropdown' %}",
                 get_pref_label: "{% url 'get_pref_label' %}",
                 from_sparql_endpoint: "{% url 'from_sparql_endpoint' 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' %}",
                 search_sparql_endpoint: "{% url 'search_sparql_endpoint' %}",
@@ -182,7 +185,9 @@
                 report_manager: function(graphid){return "{% url 'report_manager' 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' %}".replace('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', graphid)},
                 function_manager: function(graphid){return "{% url 'function_manager' 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' %}".replace('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', graphid)},
                 form_manager: function(graphid){return "{% url 'form_manager' 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' %}".replace('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', graphid)},
-                permission_manager: function(graphid){return "{% url 'permission_manager' 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' %}".replace('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', graphid)}
+                permission_manager: function(graphid){return "{% url 'permission_manager' 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' %}".replace('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', graphid)},
+                project: "{% url 'project_manager' %}",
+                group_users: "{% url 'group_users' %}"
             },
             confirmNav: {
                 title: "{% trans 'Edits pending...' %}",
@@ -226,7 +231,7 @@
             mapDefaultMinZoom: {{ map_info.map_min_zoom }},
             mapDefaultMaxZoom: {{ map_info.map_max_zoom }},
             preferredCoordinateSystems: {% autoescape off %}{{ map_info.preferred_coordinate_systems }}{% endautoescape %},
-            useSemanticRelationships: {{ use_semantic_relationships|lower }},
+            useSemanticRelationships: {{ app_settings.USE_SEMANTIC_RESOURCE_RELATIONSHIPS|lower }},
             geocoderDefault: '{{ map_info.geocoder_default }}',
             mapSources: {{% autoescape off %}{% for map_source in map_sources %}
                 '{{ map_source.name }}': {{ map_source.source_json }},
@@ -276,7 +281,7 @@
               'name': '{{ resource.name }}',
               'icon': '{{ resource.iconclass }}',
             },{% endfor %}{% endautoescape %}],
-            graphs: {% autoescape off %}{{graphs|default_if_none:"[]"}}{% endautoescape %}
+            graphs: {% autoescape off %}{{graphs|default:"[]"}}{% endautoescape %}
         };
     });
 

@@ -39,6 +39,10 @@ define(['knockout', 'underscore', 'uuid'], function (ko, _, uuid) {
         this.configObservables = params.configObservables || {};
         this.configKeys = params.configKeys || [];
         this.configKeys.push('label');
+        this.configKeys.push('required');
+        if (this.node) {
+            this.required = this.node.isrequired;
+        }
         if (typeof this.config !== 'function') {
             this.config = ko.observable(this.config);
         }
