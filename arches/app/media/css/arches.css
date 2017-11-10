@@ -5872,14 +5872,25 @@ a.list-group-item:not(.active):hover, .clear-find:hover, div .switch label:hover
 
 .resource-tools a.resource-grid-title.active {
     color: #333;
+    background: #ddd;
+
 }
 
 .resource-tools a.resource-grid-title {
     color: #999;
+    margin-top: 6px;
+    margin-left: 3px;
+    padding: 3px 20px 6px 20px;
+    line-height: 35px;
 }
 
-.resource-tools a.resource-grid-title:hover {
+.resource-tools a.resource-grid-title:first-of-type {
+    margin-left: 10px;
+}
+
+.resource-tools a.resource-grid-title:not(.active):hover {
     color: #666;
+    background: #ececec;
 }
 
 .resource-tools a.resource-grid-title.active:hover {
@@ -7912,17 +7923,21 @@ a.clear-geojson-button:hover {
 .category-title {
     font-weight: normal;
     font-size: 15px;
-    padding-right: 10px;
+    padding: 9px 15px;
     color: #999;
     display: inline-block;
 }
 
 .category-title.active {
     color: #123;
+    background: #ddd;
+    cursor: default;
 }
 
-.category-title:hover {
+.category-title:not(.active):hover{
     cursor: pointer;
+    background: #ececec;
+}
 }
 
 .carousel, .carousel .item {
@@ -9272,6 +9287,10 @@ a.search-facet-item.disabled {
     text-overflow: ellipsis;
 }
 
+.mpm-card {
+    min-height: 550px;
+}
+
 .mpm-card-content {
     margin-top: -54px;
     margin-left: -35px;
@@ -9281,9 +9300,14 @@ a.search-facet-item.disabled {
     -ms-flex: 0 0 250px;
     -webkit-flex: 0 0 250px;
     flex: 0 0 250px;
-    height: 540px;
+    height: 550px;
+    margin-left: -2px;
     background: #fcfcfc;
     border-right: 1px solid #ddd;
+}
+
+#identities-card .library-card:not(.selected-card) {
+    border-left: 5px solid #f8f8f8;
 }
 
 .identities-list .mpm-left-panel {
@@ -9345,6 +9369,19 @@ a.search-facet-item.disabled {
     padding: 10px;
 }
 
+.mpm-group-users {
+    height: 390px;
+    overflow-y: scroll;
+    margin-top: 5px;
+    border-top: solid;
+    border-width: 0.25px;
+    border-color: #eee;
+}
+
+.get-user-detail:hover {
+    background: #f8f8f8;
+}
+
 .mpm-right-panel .list-group.user-cards {
     padding-right: 35px;
 }
@@ -9378,7 +9415,7 @@ a.search-facet-item.disabled {
     text-overflow: ellipsis;
 }
 
-.mpm-user-name {
+.mpm-user-name h4 {
     font-size: 15px;
     font-weight: 500;
     color: #156AB7;
@@ -9391,8 +9428,22 @@ a.search-facet-item.disabled {
     flex-direction: row;
     align-items: baseline;
     justify-content: space-between;
-    margin-top: 0px;
-    margin-bottom: 0px;
+}
+
+.mpm-toggle-container {
+    width: 400px;
+    display: flex;
+}
+
+.list-group-item .mpm-user-summary {
+    height: 0;
+    transition: height 600ms ease-out;
+    overflow: hidden;
+    padding: 0;
+}
+
+.list-group-item .mpm-user-summary.expanded {
+    height: 280px;
 }
 
 .mpm-user-subtitle {
@@ -9401,11 +9452,13 @@ a.search-facet-item.disabled {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    padding: 0px 10px;
+    padding: 0px 10px 0px 0px;
+    margin-top: -3px;
 }
 
 .mpm-user-subtitle.user {
     padding: 0px;
+    justify-content: left;
 }
 
 .mpm-user-groups {
@@ -9474,9 +9527,20 @@ a.search-facet-item.disabled {
 }
 
 .mpm-item-listing-header {
+    padding-left: 10px;
+    margin-top: 0px;
     color: #454545;
     font-size: 15px;
     font-weight: 500;
+}
+
+.mpm-account-switch {
+    margin-top: 20px;
+}
+
+.mpm-account-switch-text {
+    padding-left: 40px;
+    margin-top: -17px;
 }
 
 .project-search-widget.mpm-item-listing {
@@ -9500,6 +9564,7 @@ a.search-facet-item.disabled {
 
 .mpm-node-detail-metadata {
     list-style: none;
+    color: #777;
 }
 
 .mpm-activation-panel {
@@ -9513,11 +9578,30 @@ a.search-facet-item.disabled {
     padding-top: 10px;
     padding-bottom: 10px;
     border-top: 1px solid #eee;
+    height: 135px;
+    overflow-y: scroll;
 }
+
+.profile-mpm-panel {
+    margin-left: 20px;
+    text-align: justify;
+    overflow: hidden;
+    font-family: 'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif;
+    font-size: 13px;
+    height: 0;
+    transition: height 600ms ease-out;
+}
+
+.profile-mpm-panel.show-details {
+    height: 400px;
+}
+
 .project-panel {
 	width: 100%;
 	border: 1px solid #3b8dd5;
-	margin-bottom: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
 }
 
 .project-panel.expired {
@@ -9561,7 +9645,12 @@ a.search-facet-item.disabled {
 	color: #777;
 	padding: 3px;
 	font-style: italic;
+    text-align: center;
 	background: #ddd;
+}
+
+.library-card .project-status {
+    text-align: left;
 }
 
 .project-status.active {

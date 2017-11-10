@@ -45,6 +45,7 @@ from arches.app.utils.skos import SKOSReader
 from arches.app.views.tileserver import seed_resource_cache
 from arches.management.commands import utils
 from arches.setup import get_elasticsearch_download_url, download_elasticsearch, unzip_file
+from arches.app.search.mappings import prepare_term_index, prepare_resource_relations_index
 
 class Command(BaseCommand):
     """
@@ -115,6 +116,9 @@ class Command(BaseCommand):
         parser.add_argument('-bulk', '--bulk_load', action='store_true', dest='bulk_load',
             help='Bulk load values into the database.  By setting this flag the system will bypass any PreSave functions attached to the resource.')
 
+        parser.add_argument('-create_concepts', '--create_concepts', action='store', dest='create_concepts',
+            help='Create concepts from your business data on import. When setting this flag the system will pull the unique values from columns indicated as concepts and load them into candidates and collections.')
+
         parser.add_argument('-single_file', '--single_file', action='store_true', dest='single_file',
             help='Export grouped business data attrbiutes one or multiple csv files. By setting this flag the system will export all grouped business data to one csv file.')
 
@@ -133,8 +137,6 @@ class Command(BaseCommand):
             self.install(package_name)
 
         if options['operation'] == 'setup_db':
-            # self.delete_indexes()
-            # self.setup_indexes()
             self.setup_db(package_name)
 
         if options['operation'] == 'setup_indexes':
@@ -171,7 +173,7 @@ class Command(BaseCommand):
             self.export_graphs(options['dest_dir'], options['graphs'])
 
         if options['operation'] == 'import_business_data':
-            self.import_business_data(options['source'], options['config_file'], options['overwrite'], options['bulk_load'])
+            self.import_business_data(options['source'], options['config_file'], options['overwrite'], options['bulk_load'], options['create_concepts'])
 
         if options['operation'] == 'import_business_data_relations':
             self.import_business_data_relations(options['source'])
@@ -628,8 +630,9 @@ class Command(BaseCommand):
         os.system('psql -h %(HOST)s -p %(PORT)s -U %(USER)s -d postgres -f "%(truncate_path)s"' % db_settings)
 
         self.delete_indexes()
+        prepare_term_index(create=True)
+        prepare_resource_relations_index(create=True)
         management.call_command('migrate')
-        #self.setup_indexes()
 
         self.import_graphs(os.path.join(settings.ROOT_DIR, 'db', 'system_settings', 'Arches_System_Settings_Model.json'), overwrite_graphs=True)
         self.import_business_data(os.path.join(settings.ROOT_DIR, 'db', 'system_settings', 'Arches_System_Settings.json'), overwrite=True)
@@ -741,7 +744,7 @@ class Command(BaseCommand):
         rdf = skos.read_file(data_source)
         ret = skos.save_concepts_from_skos(rdf, overwrite, stage)
 
-    def import_business_data(self, data_source, config_file=None, overwrite=None, bulk_load=False):
+    def import_business_data(self, data_source, config_file=None, overwrite=None, bulk_load=False, create_concepts=False):
         """
         Imports business data from all formats
         """
@@ -757,11 +760,30 @@ class Command(BaseCommand):
         if isinstance(data_source, basestring):
             data_source = [data_source]
 
+        update_system_settings = True
+        if os.path.exists(settings.SYSTEM_SETTINGS_LOCAL_PATH):
+            response = raw_input('Overwrite current system settings with package settings? (Y/N): ')
+            if response.lower() in ('t', 'true', 'y', 'yes'):
+                update_system_settings = True
+                print 'Using package system settings'
+            else:
+                update_system_settings = False
+
+        create_collections = False
+        if create_concepts:
+            create_concepts = str(create_concepts).lower()
+            if create_concepts == 'create':
+                create_collections = True
+                print 'Creating new collections . . .'
+            elif create_concepts == 'append':
+                print 'Appending to existing collections . . .'
+            create_concepts = True
+
         if data_source != ():
             for path in data_source:
                 if os.path.isabs(path):
                     if os.path.isfile(os.path.join(path)):
-                        BusinessDataImporter(path, config_file).import_business_data(overwrite=overwrite, bulk=bulk_load)
+                        BusinessDataImporter(path, config_file).import_business_data(overwrite=overwrite, bulk=bulk_load, create_concepts=create_concepts, create_collections=create_collections)
                     else:
                         print '*'*80
                         print 'No file found at indicated location: {0}'.format(path)
